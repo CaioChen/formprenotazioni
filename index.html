@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema Prenotazioni</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.95;
+        }
+        
+        .form-content {
+            padding: 40px 30px;
+        }
+        
+        .step {
+            display: none;
+        }
+        
+        .step.active {
+            display: block;
+            animation: fadeIn 0.5s;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .form-group {
+            margin-bottom: 25px;
+        }
+        
+        label {
+            display: block;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+            font-size: 1em;
+        }
+        
+        input, select, textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+            font-family: inherit;
+        }
+        
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 10px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            width: 100%;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .btn-secondary {
+            background: #e0e0e0;
+            color: #333;
+            margin-top: 10px;
+        }
+        
+        .btn-secondary:hover {
+            background: #d0d0d0;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .alert {
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        
+        .alert.success {
+            background: #d4edda;
+            color: #155724;
+            border: 2px solid #c3e6cb;
+            display: block;
+        }
+        
+        .alert.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 2px solid #f5c6cb;
+            display: block;
+        }
+        
+        .alert.warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 2px solid #ffeaa7;
+            display: block;
+        }
+        
+        .orari-disponibili {
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 0.9em;
+        }
+        
+        .orari-disponibili h4 {
+            margin-bottom: 10px;
+            color: #667eea;
+        }
+        
+        .orari-disponibili p {
+            margin: 5px 0;
+            color: #555;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            display: none;
+        }
+        
+        .loading.active {
+            display: block;
+        }
+        
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .step-indicator {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 30px;
+            gap: 10px;
+        }
+        
+        .step-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #e0e0e0;
+            transition: all 0.3s;
+        }
+        
+        .step-dot.active {
+            background: #667eea;
+            transform: scale(1.3);
+        }
+        
+        .slot-info {
+            background: #e8f4f8;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            display: none;
+        }
+        
+        .slot-info.show {
+            display: block;
+        }
+        
+        .slot-info strong {
+            color: #667eea;
+        }
+
+        @media (max-width: 600px) {
+            .header h1 {
+                font-size: 1.8em;
+            }
+            
+            .form-content {
+                padding: 30px 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📅 Sistema Prenotazioni</h1>
+            <p>Scegli il tipo di servizio e prenota il tuo appuntamento</p>
+        </div>
+        
+        <div class="form-content">
+            <div class="step-indicator">
+                <div class="step-dot active" data-step="1"></div>
+                <div class="step-dot" data-step="2"></div>
+                <div class="step-dot" data-step="3"></div>
+            </div>
+            
+            <div id="alerts"></div>
+            
+            <!-- STEP 1: Tipo di richiesta -->
+            <div class="step active" id="step1">
+                <h2 style="margin-bottom: 20px; color: #333;">Cosa vuoi fare?</h2>
+                <div class="form-group">
+                    <label>Seleziona il tipo di richiesta</label>
+                    <select id="tipoRichiesta" required>
+                        <option value="">-- Scegli un'opzione --</option>
+                        <option value="prenotazione">📅 Prenotazione appuntamento</option>
+                        <option value="manifestazione">📨 Manifestazione di interesse</option>
+                    </select>
+                </div>
+                <button class="btn" onclick="goToStep2()">Continua →</button>
+            </div>
+            
+            <!-- STEP 2: Dati personali -->
+            <div class="step" id="step2">
+                <h2 style="margin-bottom: 20px; color: #333;">I tuoi dati</h2>
+                <div class="form-group">
+                    <label>Nome *</label>
+                    <input type="text" id="nome" required placeholder="Inserisci il tuo nome">
+                </div>
+                <div class="form-group">
+                    <label>Cognome *</label>
+                    <input type="text" id="cognome" required placeholder="Inserisci il tuo cognome">
+                </div>
+                <div class="form-group">
+                    <label>Email *</label>
+                    <input type="email" id="email" required placeholder="tua@email.com">
+                </div>
+                <div class="form-group">
+                    <label>Telefono *</label>
+                    <input type="tel" id="telefono" required placeholder="+39 123 456 7890">
+                </div>
+                
+                <!-- Solo per prenotazioni -->
+                <div class="form-group" id="tipoServizioGroup" style="display: none;">
+                    <label>Tipo di servizio *</label>
+                    <select id="tipoServizio" required>
+                        <option value="">-- Seleziona il servizio --</option>
+                        <option value="Orientamento Scuola - Famiglie">Orientamento Scuola - Famiglie</option>
+                        <option value="Orientamento Scuola - Ragazzi">Orientamento Scuola - Ragazzi</option>
+                        <option value="Orientamento Famiglie e Adolescenti a rischio reati e in percorsi di recupero">Orientamento Famiglie e Adolescenti a rischio reati e in percorsi di recupero</option>
+                        <option value="Persone con disabilità">Persone con disabilità</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label id="descrizioneLabel">Descrizione</label>
+                    <textarea id="descrizione" required placeholder="Descrivi brevemente il motivo del contatto..."></textarea>
+                </div>
+                
+                <!-- Sezione manifestazione -->
+                <div id="manifestazioneSection" style="display: none;">
+                    <div class="form-group">
+                        <label>Modalità di ricontatto preferita *</label>
+                        <select id="modalitaRicontatto" required>
+                            <option value="">-- Scegli --</option>
+                            <option value="Email">📧 Email</option>
+                            <option value="Telefono">📞 Telefono</option>
+                            <option value="WhatsApp">💬 WhatsApp</option>
+                        </select>
+                    </div>
+                    <button class="btn" onclick="inviaManifestazione()">Invia Richiesta</button>
+                </div>
+                
+                <!-- Sezione prenotazione -->
+                <div id="prenotazioneSection" style="display: none;">
+                    <button class="btn" onclick="goToStep3()">Continua alla prenotazione →</button>
+                </div>
+                
+                <button class="btn btn-secondary" onclick="goToStep1()">← Indietro</button>
+            </div>
+            
+            <!-- STEP 3: Selezione data e ora -->
+            <div class="step" id="step3">
+                <h2 style="margin-bottom: 20px; color: #333;">Scegli data e ora</h2>
+                
+                <div class="orari-disponibili">
+                    <h4>📋 Orari di disponibilità settimanali:</h4>
+                    <p><strong>Lunedì:</strong> 07:00-07:45, 14:30-21:00</p>
+                    <p><strong>Martedì:</strong> 07:00-07:45, 14:30-21:00</p>
+                    <p><strong>Mercoledì:</strong> 07:00-07:45, 14:30-21:00</p>
+                    <p><strong>Giovedì:</strong> 07:00-07:45, 14:30-16:30, 18:30-21:00</p>
+                    <p><strong>Venerdì:</strong> 07:00-07:45, 14:30-21:00</p>
+                    <p><strong>Sabato:</strong> 11:30-21:00</p>
+                    <p><strong>Domenica:</strong> CHIUSO ❌</p>
+                </div>
+                
+                <div class="form-group">
+                    <label>Modalità di contatto *</label>
+                    <select id="modalitaContatto" required onchange="updateDurata()">
+                        <option value="">-- Scegli --</option>
+                        <option value="telefono">☎️ Telefonata (30 min)</option>
+                        <option value="persona">🤝 Incontro di persona (1 ora)</option>
+                        <option value="email">📧 Email (ricontatto entro 30 min)</option>
+                        <option value="whatsapp">💬 WhatsApp (ricontatto entro 30 min)</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>Data preferita *</label>
+                    <input type="date" id="data" required onchange="aggiornaOrari()">
+                </div>
+                
+                <div class="form-group">
+                    <label>Orario preferito *</label>
+                    <select id="orario" required disabled>
+                        <option value="">-- Prima seleziona una data --</option>
+                    </select>
+                </div>
+                
+                <div class="slot-info" id="slotInfo">
+                    <strong>Durata:</strong> <span id="durataText">--</span><br>
+                    <strong>Giorno:</strong> <span id="giornoText">--</span>
+                </div>
+                
+                <button class="btn" onclick="inviaPrenotazione()">Conferma Prenotazione ✓</button>
+                <button class="btn btn-secondary" onclick="goToStep2()">← Indietro</button>
+            </div>
+            
+            <!-- Loading -->
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>Invio in corso...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ⚠️ IMPORTANTE: SOSTITUISCI QUESTO URL CON QUELLO DELLA TUA WEB APP
+        const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyB_eQQK1zZT8cV3pOkNV5HR7VnHORrpQF96zU2Z74yrZYQ5IdSSRRI_kZxXWhZa-5C/exec';
+        
+        // CONFIGURAZIONE ORARI
+        const orariDisponibili = {
+            0: [],
+            1: [{inizio: "07:00", fine: "07:45"}, {inizio: "14:30", fine: "21:00"}],
+            2: [{inizio: "07:00", fine: "07:45"}, {inizio: "14:30", fine: "21:00"}],
+            3: [{inizio: "07:00", fine: "07:45"}, {inizio: "14:30", fine: "21:00"}],
+            4: [{inizio: "07:00", fine: "07:45"}, {inizio: "14:30", fine: "16:30"}, {inizio: "18:30", fine: "21:00"}],
+            5: [{inizio: "07:00", fine: "07:45"}, {inizio: "14:30", fine: "21:00"}],
+            6: [{inizio: "11:30", fine: "21:00"}]
+        };
+        
+        const nomiGiorni = ["Domenica", "Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì", "Sabato"];
+        
+        let currentStep = 1;
+        let tipoRichiestaSelezionata = '';
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            const dataInput = document.getElementById('data');
+            const oggi = new Date().toISOString().split('T')[0];
+            dataInput.min = oggi;
+        });
+        
+        function showAlert(message, type = 'error') {
+            const alertsDiv = document.getElementById('alerts');
+            alertsDiv.innerHTML = `<div class="alert ${type}">${message}</div>`;
+            setTimeout(() => {
+                alertsDiv.innerHTML = '';
+            }, 5000);
+        }
+        
+        function updateStepIndicator(step) {
+            document.querySelectorAll('.step-dot').forEach((dot, index) => {
+                if (index + 1 <= step) {
+                    dot.classList.add('active');
+                } else {
+                    dot.classList.remove('active');
+                }
+            });
+        }
+        
+        function goToStep1() {
+            document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+            document.getElementById('step1').classList.add('active');
+            currentStep = 1;
+            updateStepIndicator(1);
+        }
+        
+        function goToStep2() {
+            const tipoRichiesta = document.getElementById('tipoRichiesta').value;
+            if (!tipoRichiesta) {
+                showAlert('Seleziona un tipo di richiesta!');
+                return;
+            }
+            
+            tipoRichiestaSelezionata = tipoRichiesta;
+            
+            document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+            document.getElementById('step2').classList.add('active');
+            currentStep = 2;
+            updateStepIndicator(2);
+            
+            if (tipoRichiesta === 'manifestazione') {
+                document.getElementById('tipoServizioGroup').style.display = 'none';
+                document.getElementById('manifestazioneSection').style.display = 'block';
+                document.getElementById('prenotazioneSection').style.display = 'none';
+                document.getElementById('descrizioneLabel').textContent = 'Descrizione breve *';
+                document.getElementById('descrizione').required = true;
+            } else {
+                document.getElementById('tipoServizioGroup').style.display = 'block';
+                document.getElementById('manifestazioneSection').style.display = 'none';
+                document.getElementById('prenotazioneSection').style.display = 'block';
+                document.getElementById('descrizioneLabel').textContent = 'Note aggiuntive (opzionale)';
+                document.getElementById('descrizione').required = false;
+            }
+        }
+        
+        function goToStep3() {
+            const nome = document.getElementById('nome').value.trim();
+            const cognome = document.getElementById('cognome').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const telefono = document.getElementById('telefono').value.trim();
+            const tipoServizio = document.getElementById('tipoServizio').value;
+            
+            if (!nome || !cognome || !email || !telefono || !tipoServizio) {
+                showAlert('Compila tutti i campi obbligatori!');
+                return;
+            }
+            
+            document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+            document.getElementById('step3').classList.add('active');
+            currentStep = 3;
+            updateStepIndicator(3);
+        }
+        
+        function aggiornaOrari() {
+            const dataInput = document.getElementById('data').value;
+            if (!dataInput) return;
+            
+            const data = new Date(dataInput + 'T12:00:00');
+            const giorno = data.getDay();
+            const orarioSelect = document.getElementById('orario');
+            const slotInfo = document.getElementById('slotInfo');
+            const giornoText = document.getElementById('giornoText');
+            
+            giornoText.textContent = nomiGiorni[giorno];
+            slotInfo.classList.add('show');
+            
+            orarioSelect.innerHTML = '';
+            
+            const fasce = orariDisponibili[giorno];
+            
+            if (fasce.length === 0) {
+                orarioSelect.innerHTML = '<option value="">❌ Domenica chiuso</option>';
+                orarioSelect.disabled = true;
+                showAlert('La domenica siamo chiusi. Scegli un altro giorno.', 'warning');
+                return;
+            }
+            
+            orarioSelect.disabled = false;
+            orarioSelect.innerHTML = '<option value="">-- Scegli un orario --</option>';
+            
+            fasce.forEach(fascia => {
+                const slots = generaSlots(fascia.inizio, fascia.fine);
+                slots.forEach(slot => {
+                    const option = document.createElement('option');
+                    option.value = slot;
+                    option.textContent = slot;
+                    orarioSelect.appendChild(option);
+                });
+            });
+        }
+        
+        function generaSlots(inizio, fine) {
+            const slots = [];
+            const [oreInizio, minInizio] = inizio.split(':').map(Number);
+            const [oreFine, minFine] = fine.split(':').map(Number);
+            
+            let currentMin = oreInizio * 60 + minInizio;
+            const fineMin = oreFine * 60 + minFine;
+            
+            while (currentMin < fineMin) {
+                const ore = Math.floor(currentMin / 60);
+                const min = currentMin % 60;
+                const timeStr = `${ore.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}`;
+                slots.push(timeStr);
+                currentMin += 15;
+            }
+            
+            return slots;
+        }
+        
+        function updateDurata() {
+            const modalita = document.getElementById('modalitaContatto').value;
+            const durataText = document.getElementById('durataText');
+            
+            if (modalita === 'persona') {
+                durataText.textContent = '60 minuti';
+            } else if (modalita) {
+                durataText.textContent = '30 minuti';
+            }
+        }
+        
+        function inviaManifestazione() {
+            const nome = document.getElementById('nome').value.trim();
+            const cognome = document.getElementById('cognome').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const telefono = document.getElementById('telefono').value.trim();
+            const descrizione = document.getElementById('descrizione').value.trim();
+            const modalita = document.getElementById('modalitaRicontatto').value;
+            
+            if (!nome || !cognome || !email || !telefono || !descrizione || !modalita) {
+                showAlert('Compila tutti i campi obbligatori!');
+                return;
+            }
+            
+            document.getElementById('loading').classList.add('active');
+            document.getElementById('step2').style.display = 'none';
+            
+            const dati = {
+                tipo: 'manifestazione',
+                nome, cognome, email, telefono, descrizione, modalita
+            };
+            
+            inviaAScript(dati);
+        }
+        
+        function inviaPrenotazione() {
+            const nome = document.getElementById('nome').value.trim();
+            const cognome = document.getElementById('cognome').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const telefono = document.getElementById('telefono').value.trim();
+            const tipoServizio = document.getElementById('tipoServizio').value;
+            const descrizione = document.getElementById('descrizione').value.trim();
+            const modalita = document.getElementById('modalitaContatto').value;
+            const data = document.getElementById('data').value;
+            const orario = document.getElementById('orario').value;
+            
+            if (!modalita || !data || !orario || !tipoServizio) {
+                showAlert('Compila tutti i campi obbligatori della prenotazione!');
+                return;
+            }
+            
+            document.getElementById('loading').classList.add('active');
+            document.getElementById('step3').style.display = 'none';
+            
+            const durata = modalita === 'persona' ? 60 : 30;
+            
+            const dati = {
+                tipo: 'prenotazione',
+                nome, cognome, email, telefono, tipoServizio, descrizione, modalita, data, orario, durata
+            };
+            
+            inviaAScript(dati);
+        }
+        
+        function inviaAScript(dati) {
+            fetch(WEB_APP_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(dati)
+            })
+            .then(() => {
+                document.getElementById('loading').classList.remove('active');
+                showAlert('✅ Richiesta inviata con successo! Riceverai una email di conferma.', 'success');
+                
+                setTimeout(() => {
+                    location.reload();
+                }, 3000);
+            })
+            .catch(error => {
+                document.getElementById('loading').classList.remove('active');
+                showAlert('❌ Errore nell\'invio. Riprova più tardi.', 'error');
+                console.error('Errore:', error);
+            });
+        }
+    </script>
+</body>
+</html>
