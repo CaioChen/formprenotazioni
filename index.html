@@ -293,28 +293,47 @@
             <div class="step" id="step3">
                 <h2 style="margin-bottom: 20px; color: #333;">Scegli data e ora</h2>
                 
+                <div style="background: #f8f9fa; border-left: 4px solid #667eea; padding: 15px; border-radius: 8px; margin-bottom: 20px; font-size: 0.9em;">
+                    <h4 style="margin-bottom: 10px; color: #667eea;">📋 Orari di disponibilità:</h4>
+                    <p style="margin: 5px 0; color: #555;"><strong>Lun-Mer-Ven:</strong> 07:00-07:45, 14:30-21:00</p>
+                    <p style="margin: 5px 0; color: #555;"><strong>Martedì:</strong> 07:00-07:45, 14:30-21:00</p>
+                    <p style="margin: 5px 0; color: #555;"><strong>Giovedì:</strong> 07:00-07:45, 14:30-16:30, 18:30-21:00</p>
+                    <p style="margin: 5px 0; color: #555;"><strong>Sabato:</strong> 11:30-21:00</p>
+                    <p style="margin: 5px 0; color: #555;"><strong>Domenica:</strong> CHIUSO ❌</p>
+                </div>
+                
                 <div class="form-group">
                     <label>Modalità di contatto</label>
-                    <select id="modalitaContatto">
+                    <select id="modalitaContatto" onchange="updateDurata()" required>
                         <option value="">-- Scegli --</option>
-                        <option value="telefono">☎️ Telefonata</option>
-                        <option value="persona">🤝 Incontro di persona</option>
-                        <option value="email">📧 Email</option>
-                        <option value="whatsapp">💬 WhatsApp</option>
+                        <option value="telefono">☎️ Telefonata (30 min)</option>
+                        <option value="persona">🤝 Incontro di persona (1 ora)</option>
+                        <option value="email">📧 Email (30 min)</option>
+                        <option value="whatsapp">💬 WhatsApp (30 min)</option>
+                    </select>
+                    <small style="color: #666; font-size: 0.85em; display: block; margin-top: 5px;">
+                        ⚠️ Seleziona prima la modalità, poi la data
+                    </small>
+                </div>
+                
+                <div class="form-group">
+                    <label>Data preferita</label>
+                    <input type="date" id="data" onchange="aggiornaOrari()">
+                </div>
+                
+                <div class="form-group">
+                    <label>Orario preferito</label>
+                    <select id="orario" disabled>
+                        <option value="">-- Prima seleziona una data --</option>
                     </select>
                 </div>
                 
-                <div class="form-group">
-                    <label>Data</label>
-                    <input type="date" id="data">
+                <div id="slotInfo" style="background: #e8f4f8; padding: 15px; border-radius: 8px; margin-top: 15px; display: none;">
+                    <strong style="color: #667eea;">Durata:</strong> <span id="durataText">--</span><br>
+                    <strong style="color: #667eea;">Giorno:</strong> <span id="giornoText">--</span>
                 </div>
                 
-                <div class="form-group">
-                    <label>Orario (formato HH:MM)</label>
-                    <input type="time" id="orario">
-                </div>
-                
-                <button class="btn" onclick="inviaPrenotazione()">Invia Prenotazione ✓</button>
+                <button class="btn" onclick="inviaPrenotazione()">Conferma Prenotazione ✓</button>
                 <button class="btn btn-secondary" onclick="goToStep2()">← Indietro</button>
             </div>
             
@@ -328,10 +347,30 @@
 
     <script>
         // ⚠️ IMPORTANTE: SOSTITUISCI CON L'URL DELLA TUA WEB APP
-        const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzEjkXBfmpQ1imWSWS1xPf2clOcDBEVtogZcBIzqlSM18YozmZWn1B9vroE3CCgV2ML/exec';
+        const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzDLbZx7Ga9qObgsOq6-pYduJ2WK5Tyn6szPaREONmi6hgjPeDAEssoCgbSg-5UJcMT/exec';
+        
+        // ORARI DISPONIBILI PER GIORNO
+        const orariDisponibili = {
+            0: [], // Domenica - CHIUSO
+            1: [{inizio: "07:00", fine: "07:45"}, {inizio: "14:30", fine: "21:00"}],
+            2: [{inizio: "07:00", fine: "07:45"}, {inizio: "14:30", fine: "21:00"}],
+            3: [{inizio: "07:00", fine: "07:45"}, {inizio: "14:30", fine: "21:00"}],
+            4: [{inizio: "07:00", fine: "07:45"}, {inizio: "14:30", fine: "16:30"}, {inizio: "18:30", fine: "21:00"}],
+            5: [{inizio: "07:00", fine: "07:45"}, {inizio: "14:30", fine: "21:00"}],
+            6: [{inizio: "11:30", fine: "21:00"}]
+        };
+        
+        const nomiGiorni = ["Domenica", "Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì", "Sabato"];
         
         let currentStep = 1;
         let tipoRichiestaSelezionata = '';
+        
+        // Imposta data minima (oggi)
+        document.addEventListener('DOMContentLoaded', function() {
+            const dataInput = document.getElementById('data');
+            const oggi = new Date().toISOString().split('T')[0];
+            dataInput.min = oggi;
+        });
         
         function showAlert(message, type = 'error') {
             const alertsDiv = document.getElementById('alerts');
@@ -393,6 +432,136 @@
             updateStepIndicator(3);
         }
         
+        function aggiornaOrari() {
+            const dataInput = document.getElementById('data').value;
+            const modalita = document.getElementById('modalitaContatto').value;
+            
+            if (!dataInput || !modalita) {
+                return;
+            }
+            
+            const durata = modalita === 'persona' ? 60 : 30;
+            
+            const data = new Date(dataInput + 'T12:00:00');
+            const giorno = data.getDay();
+            const orarioSelect = document.getElementById('orario');
+            const slotInfo = document.getElementById('slotInfo');
+            const giornoText = document.getElementById('giornoText');
+            
+            giornoText.textContent = nomiGiorni[giorno];
+            slotInfo.style.display = 'block';
+            
+            // Mostra loading
+            orarioSelect.innerHTML = '<option value="">⏳ Caricamento slot disponibili...</option>';
+            orarioSelect.disabled = true;
+            
+            // Domenica
+            if (giorno === 0) {
+                orarioSelect.innerHTML = '<option value="">❌ Domenica chiuso</option>';
+                showAlert('La domenica siamo chiusi. Scegli un altro giorno.', 'error');
+                return;
+            }
+            
+            // Chiama lo script per ottenere slot disponibili
+            fetch(WEB_APP_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    tipo: 'getSlotDisponibili',
+                    data: dataInput,
+                    durata: durata
+                })
+            })
+            .then(response => response.json())
+            .then(result => {
+                console.log('📅 Slot ricevuti:', result);
+                
+                if (!result.success || !result.slots || result.slots.length === 0) {
+                    orarioSelect.innerHTML = '<option value="">❌ Nessuno slot disponibile</option>';
+                    showAlert('Nessuno slot disponibile per questa data. Scegli un\'altra data.', 'error');
+                    return;
+                }
+                
+                // Popola select con slot disponibili
+                orarioSelect.innerHTML = '<option value="">-- Scegli un orario --</option>';
+                result.slots.forEach(slot => {
+                    const option = document.createElement('option');
+                    option.value = slot;
+                    option.textContent = slot;
+                    orarioSelect.appendChild(option);
+                });
+                
+                orarioSelect.disabled = false;
+            })
+            .catch(error => {
+                console.error('❌ Errore caricamento slot:', error);
+                // Fallback: genera slot localmente
+                generaSlotsLocali(giorno, orarioSelect);
+            });
+        }
+        
+        function generaSlotsLocali(giorno, orarioSelect) {
+            console.log('⚠️ Fallback: generazione slot locale');
+            const fasce = orariDisponibili[giorno];
+            
+            if (fasce.length === 0) {
+                orarioSelect.innerHTML = '<option value="">❌ Giorno non disponibile</option>';
+                return;
+            }
+            
+            orarioSelect.innerHTML = '<option value="">-- Scegli un orario --</option>';
+            
+            fasce.forEach(fascia => {
+                const slots = generaSlots(fascia.inizio, fascia.fine);
+                slots.forEach(slot => {
+                    const option = document.createElement('option');
+                    option.value = slot;
+                    option.textContent = slot + ' (verifica disponibilità)';
+                    orarioSelect.appendChild(option);
+                });
+            });
+            
+            orarioSelect.disabled = false;
+        }
+        
+        function generaSlots(inizio, fine) {
+            const slots = [];
+            const [oreInizio, minInizio] = inizio.split(':').map(Number);
+            const [oreFine, minFine] = fine.split(':').map(Number);
+            
+            let currentMin = oreInizio * 60 + minInizio;
+            const fineMin = oreFine * 60 + minFine;
+            
+            while (currentMin < fineMin) {
+                const ore = Math.floor(currentMin / 60);
+                const min = currentMin % 60;
+                const timeStr = `${ore.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}`;
+                slots.push(timeStr);
+                currentMin += 15; // Slot ogni 15 minuti
+            }
+            
+            return slots;
+        }
+        
+        function updateDurata() {
+            const modalita = document.getElementById('modalitaContatto').value;
+            const durataText = document.getElementById('durataText');
+            
+            if (modalita === 'persona') {
+                durataText.textContent = '60 minuti';
+            } else if (modalita) {
+                durataText.textContent = '30 minuti';
+            }
+            
+            // Ricarica orari se data è già selezionata
+            const dataInput = document.getElementById('data').value;
+            if (dataInput) {
+                aggiornaOrari();
+            }
+        }
+        
         function inviaManifestazione() {
             document.getElementById('loading').classList.add('active');
             document.getElementById('step2').style.display = 'none';
@@ -411,10 +580,18 @@
         }
         
         function inviaPrenotazione() {
+            const modalita = document.getElementById('modalitaContatto').value;
+            const data = document.getElementById('data').value;
+            const orario = document.getElementById('orario').value;
+            
+            if (!modalita || !data || !orario) {
+                showAlert('Compila tutti i campi obbligatori!');
+                return;
+            }
+            
             document.getElementById('loading').classList.add('active');
             document.getElementById('step3').style.display = 'none';
             
-            const modalita = document.getElementById('modalitaContatto').value || 'telefono';
             const durata = modalita === 'persona' ? 60 : 30;
             
             const dati = {
@@ -426,8 +603,8 @@
                 tipoServizio: document.getElementById('tipoServizio').value || 'Test Servizio',
                 descrizione: document.getElementById('descrizione').value.trim() || '',
                 modalita: modalita,
-                data: document.getElementById('data').value || new Date().toISOString().split('T')[0],
-                orario: document.getElementById('orario').value || '10:00',
+                data: data,
+                orario: orario,
                 durata: durata
             };
             
@@ -448,7 +625,7 @@
             })
             .then(() => {
                 document.getElementById('loading').classList.remove('active');
-                showAlert('✅ Dati inviati con successo! Controlla il foglio Google Sheets.', 'success');
+                showAlert('✅ Richiesta inviata! Controlla Google Calendar e Sheets.', 'success');
                 
                 setTimeout(() => {
                     location.reload();
